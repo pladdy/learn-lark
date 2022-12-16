@@ -16,9 +16,9 @@ class TreeToJson(lark.Transformer):
     list = list
     pair = tuple
 
-    null = lambda self, _: None
-    true = lambda self, _: True
-    false = lambda self, _: False
+    null = lambda self, _: None  # noqa
+    true = lambda self, _: True  # noqa
+    false = lambda self, _: False  # noqa
 
 
 def parser():
