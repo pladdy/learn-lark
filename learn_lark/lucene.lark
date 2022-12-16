@@ -1,0 +1,52 @@
+// based on https://lucene.apache.org/core/2_9_4/queryparsersyntax.html
+
+// TODO: support special chars
+// TODO: clean up branch structure.  pretty output should look better organized.
+
+// TODO: why can't I spread this across multilines with '|'?
+query: SPACE* leading_operator? _subquery_or_terms (SPACE+ operator? _subquery_or_terms)* SPACE*
+
+_subquery_or_terms: subquery | _term_or_field
+subquery: "(" query ")"
+_term_or_field: term | field
+
+// TODO: should field and term(s) be separate rules/branches?  maybe these
+//       should be inlined and only keep term_or_field as a branch?
+field: FIELD (term | ("(" leading_operator? terms ")") | range)
+terms: term (SPACE+ operator? term)* SPACE*
+!term: fuzzy_term | ((single_term | phrase) boost?) | proximity
+
+!boost: "^" (DIGIT ".")? DIGIT+
+
+!proximity: phrase "~" DIGIT+
+phrase: QUOTE single_term (SPACE+ single_term)* QUOTE
+
+!fuzzy_term: single_term "~" ("0" | ZERO_TO_ONE | "1")?
+single_term: (LETTER|DIGIT|WILDCARD|(ESCAPE_CHAR SPECIAL_CHARS))+
+
+operator: AND | OR | NOT | REQUIRED | PROHIBIT | ((AND NOT)|(OR NOT))
+leading_operator: NOT | REQUIRED | PROHIBIT
+
+!range: ("{" | "[") _range_definition ("}" | "]")
+!_range_definition: (LETTER|DIGIT)+ SPACE+ "TO" SPACE+ (LETTER|DIGIT)+
+
+// special_chars: + - && || ! ( ) { } [ ] ^ " ~ * ? : \
+SPECIAL_CHARS: REQUIRED | PROHIBIT | "&&" | "||" | "!" | "(" | ")" | "{" | "}"
+               | "[" | "]" | "^" | "\"" | "~" | "*" | "?" | ":" | ESCAPE_CHAR
+ESCAPE_CHAR: "\\"
+
+AND: ("AND" | "&&") SPACE+
+FIELD: (LETTER | "_")+ ":"
+OR: ("OR" | "||") SPACE+
+NOT: ("NOT" SPACE+) | ("!" SPACE?)
+PROHIBIT: "-"
+QUOTE: "\"" | "'"
+REQUIRED: "+"
+SPACE: WS
+WILDCARD: "*" | "?"
+ZERO_TO_ONE: "0." "1".."9"+
+
+// common definitions: https://github.com/lark-parser/lark/blob/master/lark/grammars/common.lark
+%import common.DIGIT
+%import common.LETTER
+%import common.WS
